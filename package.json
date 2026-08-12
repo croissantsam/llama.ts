@@ -1,0 +1,26 @@
+{
+  "name": "llama-ts",
+  "version": "0.1.0",
+  "description": "100% TypeScript LLM inference engine — GGUF model loading and text generation for Node.js and ScriptC",
+  "type": "module",
+  "main": "dist/src/api/Llama.js",
+  "bin": {
+    "llama-ts": "dist/src/cli/main.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/src/cli/main.js",
+    "test": "node --test dist/tests/**/*.test.js",
+    "test:src": "tsc && node --test dist/tests/**/*.test.js",
+    "bench": "tsc && node dist/benchmarks/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT"
+}
