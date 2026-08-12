@@ -15,6 +15,8 @@ import {
   matmulReordered,
   matmulTiled,
   matvecmul,
+  matvecmulQ8_0,
+  matvecmulQ4_0,
 } from "../src/math/MatMul.js";
 import { rmsNorm } from "../src/math/RMSNorm.js";
 import { softmax } from "../src/math/Softmax.js";
@@ -70,7 +72,15 @@ console.log("--------------------------------------------------");
   const out = new Float32Array(M);
   const iters = 5000;
 
-  bench("MatVecMul (896x896)", () => matvecmul(A, 0, x, 0, out, 0, M, K), iters);
+  bench("MatVecMul FP32 (896x896)", () => matvecmul(A, 0, x, 0, out, 0, M, K), iters);
+
+  // Q8_0 quantized version (34 bytes per 32 weights)
+  const rawQ8 = new Uint8Array(M * (K / 32) * 34).fill(1);
+  bench("MatVecMul Q8_0 (896x896)", () => matvecmulQ8_0(rawQ8, 0, x, 0, out, 0, M, K), iters);
+
+  // Q4_0 quantized version (18 bytes per 32 weights)
+  const rawQ4 = new Uint8Array(M * (K / 32) * 18).fill(0x88);
+  bench("MatVecMul Q4_0 (896x896)", () => matvecmulQ4_0(rawQ4, 0, x, 0, out, 0, M, K), iters);
 }
 console.log();
 

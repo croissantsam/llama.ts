@@ -5,6 +5,8 @@ import {
   matmulReordered,
   matmulTiled,
   matvecmul,
+  matvecmulQ8_0,
+  matvecmulQ4_0,
 } from "../../src/math/MatMul.js";
 
 function assertNear(actual: number, expected: number, eps = 1e-5): void {
@@ -60,4 +62,44 @@ test("MatMul - Matrix-Vector multiply", () => {
 
   assertNear(out[0], 8.5);
   assertNear(out[1], 19.0);
+});
+
+test("MatMul - Quantized Q8_0 Matrix-Vector multiply", () => {
+  // M=1, K=32 (1 block)
+  // Scale = 1.0 (in float16: 0x3C00)
+  // 32 int8 weights: [1, 2, ..., 32]
+  const rawQ8 = new Uint8Array(34);
+  const view = new DataView(rawQ8.buffer);
+  view.setUint16(0, 0x3C00, true); // scale = 1.0
+  for (let i = 0; i < 32; i++) {
+    rawQ8[2 + i] = (i + 1);
+  }
+
+  const x = new Float32Array(32).fill(1.0);
+  const out = new Float32Array(1);
+
+  matvecmulQ8_0(rawQ8, 0, x, 0, out, 0, 1, 32);
+
+  // Sum of 1..32 = 32 * 33 / 2 = 528
+  assertNear(out[0], 528.0);
+});
+
+test("MatMul - Quantized Q4_0 Matrix-Vector multiply", () => {
+  // M=1, K=32 (1 block, 18 bytes)
+  // Scale = 1.0 (in float16: 0x3C00)
+  // Nibbles = 8 (which maps to 8 - 8 = 0)
+  const rawQ4 = new Uint8Array(18);
+  const view = new DataView(rawQ4.buffer);
+  view.setUint16(0, 0x3C00, true); // scale = 1.0
+  // Each byte contains two nibbles 0x88 -> (8-8)=0, (8-8)=0
+  for (let i = 0; i < 16; i++) {
+    rawQ4[2 + i] = 0x88;
+  }
+
+  const x = new Float32Array(32).fill(2.0);
+  const out = new Float32Array(1);
+
+  matvecmulQ4_0(rawQ4, 0, x, 0, out, 0, 1, 32);
+
+  assertNear(out[0], 0.0);
 });
