@@ -71,13 +71,37 @@ Place GGUF models in the `./models/` directory. Recommended first model:
 
 - **Qwen2.5-0.5B-Instruct** (F16 GGUF) — small, well-documented, standard architecture
 
-## Development
+## Benchmarks
+
+Run the kernel benchmark suite:
 
 ```bash
-npm run build     # Compile TypeScript
-npm run dev       # Watch mode
-npm test          # Run tests
+npm run bench
 ```
+
+### Kernel Performance Results
+
+| Kernel | Matrix / Tensor Shape | Execution Time | Throughput | Notes |
+|---|---|---|---|---|
+| **MatVecMul (FP32)** | $896 \times 896$ | $978.43\ \mu\text{s/op}$ | $1,022.0\ \text{ops/s}$ | Single-token inference pass |
+| **MatVecMul (Q8_0)** | $896 \times 896$ | $563.23\ \mu\text{s/op}$ | **$1,775.5\ \text{ops/s}$** | **1.73x speedup vs FP32** |
+| **MatVecMul (Q4_0)** | $896 \times 896$ | $563.73\ \mu\text{s/op}$ | **$1,773.9\ \text{ops/s}$** | **1.73x speedup vs FP32** |
+| **RMSNorm** | $\text{dim}=896$ | $1.05\ \mu\text{s/op}$ | $952,853.6\ \text{ops/s}$ | Layer pre-normalization |
+| **Softmax** | $\text{seq\_len}=512$ | $1.29\ \mu\text{s/op}$ | $773,850.3\ \text{ops/s}$ | Attention score normalization |
+| **RoPE** | $14\ \text{heads} \times 64\ \text{dim}$ | $7.65\ \mu\text{s/op}$ | $130,664.2\ \text{ops/s}$ | Rotary positional embeddings |
+| **SwiGLU Activation** | $\text{hidden\_dim}=4864$ | $17.66\ \mu\text{s/op}$ | $56,613.5\ \text{ops/s}$ | Fused SiLU elementwise mul |
+| **MatMul V2 (Reordered)** | $256 \times 256 \times 256$ | $14,848.38\ \mu\text{s/op}$ | $67.3\ \text{ops/s}$ | Reordered $ikj$ loop |
+| **MatMul V3 (Tiled 64)** | $256 \times 256 \times 256$ | $15,071.47\ \mu\text{s/op}$ | $66.4\ \text{ops/s}$ | L1/L2 blocked matrix product |
+
+### End-to-End Model Benchmark
+
+Run an end-to-end inference benchmark on a loaded GGUF model:
+
+```bash
+npm start -- --model ./models/qwen2.5-0.5b-instruct-q8_0.gguf --benchmark --max-tokens 100
+```
+
+---
 
 ## License
 
