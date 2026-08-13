@@ -24,8 +24,18 @@ class BinaryReader {
   private view: DataView;
   private pos: number;
 
-  constructor(buffer: ArrayBufferLike) {
-    this.view = new DataView(buffer as ArrayBuffer);
+  /**
+   * Accept either an ArrayBuffer (or ArrayBufferLike) or a Uint8Array so
+   * that callers that have a subarray (with non-zero byteOffset) are handled
+   * correctly. This prevents DataView/TypedArray range errors when the
+   * underlying ArrayBuffer is larger than the intended slice.
+   */
+  constructor(buffer: ArrayBufferLike | Uint8Array) {
+    if (buffer instanceof Uint8Array) {
+      this.view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+    } else {
+      this.view = new DataView(buffer as ArrayBuffer);
+    }
     this.pos = 0;
   }
 
